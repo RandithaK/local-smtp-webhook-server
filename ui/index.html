@@ -6,6 +6,7 @@
   <title>Local SMTP Inbox</title>
   <style>
     :root {
+      /* Base Theme - Light */
       --bg: #f3f5f6;
       --panel: #ffffff;
       --ink: #1f2933;
@@ -14,6 +15,68 @@
       --border: #d8e1e8;
       --danger: #b42318;
       --shadow: 0 10px 30px rgba(17, 24, 39, 0.08);
+
+      /* Gradients */
+      --grad-1: #dff3ff;
+      --grad-2: #ffeecd;
+
+      /* Component Colors */
+      --btn-bg: #ffffff;
+      --danger-btn-bg: #fff5f4;
+      --danger-btn-border: #f6c9c5;
+      --section-bg: #f8fafc;
+      --section-text: #111827;
+      --item-bg: #fbfcfd;
+      --input-bg: #ffffff;
+      --hover-bg: #f6fbff;
+      --active-bg: #e3f2fb;
+      --unread-pill-bg: #eef8fd;
+      --unread-pill-border: #8bbfd6;
+      --unread-pill-text: #0b6e99;
+      --del-bg: #ffffff;
+      --del-border: #e3e8ee;
+      --del-text: #748392;
+      --del-hover-bg: #fff4f3;
+      --del-hover-border: #f0b7b2;
+      --del-hover-text: #b42318;
+      --unread-meta: #3f5263;
+    }
+
+    [data-theme="dark"] {
+      /* Base Theme - Dark */
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --ink: #e2e8f0;
+      --muted: #94a3b8;
+      --brand: #38bdf8;
+      --border: #334155;
+      --danger: #f87171;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+
+      /* Gradients */
+      --grad-1: #1e3a8a;
+      --grad-2: #451a03;
+
+      /* Component Colors */
+      --btn-bg: #1e293b;
+      --danger-btn-bg: #450a0a;
+      --danger-btn-border: #7f1d1d;
+      --section-bg: #0f172a;
+      --section-text: #f1f5f9;
+      --item-bg: #0f172a;
+      --input-bg: #0f172a;
+      --hover-bg: #334155;
+      --active-bg: #1e3a8a;
+      --unread-pill-bg: #1e3a8a;
+      --unread-pill-border: #1e40af;
+      --unread-pill-text: #60a5fa;
+      --del-bg: #0f172a;
+      --del-border: #334155;
+      --del-text: #94a3b8;
+      --del-hover-bg: #450a0a;
+      --del-hover-border: #7f1d1d;
+      --del-hover-text: #fca5a5;
+      --unread-meta: #cbd5e1;
     }
 
     * { box-sizing: border-box; }
@@ -27,11 +90,12 @@
       margin: 0;
       font-family: "Segoe UI", "Helvetica Neue", Helvetica, sans-serif;
       background:
-        radial-gradient(1000px 480px at -10% -20%, #dff3ff 0%, transparent 60%),
-        radial-gradient(700px 380px at 110% -10%, #ffeecd 0%, transparent 55%),
+        radial-gradient(1000px 480px at -10% -20%, var(--grad-1) 0%, transparent 60%),
+        radial-gradient(700px 380px at 110% -10%, var(--grad-2) 0%, transparent 55%),
         var(--bg);
       color: var(--ink);
       overflow: hidden;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     .shell {
@@ -55,6 +119,7 @@
       align-items: center;
       gap: 16px;
       flex-wrap: wrap;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .title {
@@ -76,20 +141,21 @@
 
     button {
       border: 1px solid var(--border);
-      background: #fff;
+      background: var(--btn-bg);
       color: var(--ink);
       border-radius: 10px;
       padding: 8px 12px;
       font-size: 0.9rem;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
 
     button:hover { border-color: var(--brand); }
 
     .danger {
-      border-color: #f6c9c5;
+      border-color: var(--danger-btn-border);
       color: var(--danger);
-      background: #fff5f4;
+      background: var(--danger-btn-bg);
     }
 
     .layout {
@@ -113,12 +179,13 @@
       border-bottom: 1px solid var(--border);
       font-size: 0.88rem;
       font-weight: 600;
-      color: #111827;
-      background: #f8fafc;
+      color: var(--section-text);
+      background: var(--section-bg);
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 8px;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     .config-panel {
@@ -127,7 +194,7 @@
 
     .ghost-btn {
       border: 1px solid var(--border);
-      background: #fff;
+      background: var(--btn-bg);
       color: var(--ink);
       border-radius: 8px;
       padding: 6px 9px;
@@ -152,11 +219,12 @@
     .config-item {
       border: 1px solid var(--border);
       border-radius: 8px;
-      background: #fbfcfd;
+      background: var(--item-bg);
       padding: 7px;
       min-width: 0;
       width: 280px;
       flex: 0 0 auto;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .config-item label {
@@ -183,10 +251,11 @@
       padding: 7px;
       font-family: "SFMono-Regular", Menlo, Consolas, monospace;
       font-size: 0.82rem;
-      background: #fff;
+      background: var(--input-bg);
       color: var(--ink);
       overflow: hidden;
       text-overflow: ellipsis;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     .copy-btn {
@@ -202,6 +271,7 @@
       box-shadow: var(--shadow);
       overflow: hidden;
       min-height: 0;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .list {
@@ -226,6 +296,7 @@
       border-radius: 14px;
       box-shadow: var(--shadow);
       overflow: hidden;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
 
     .item {
@@ -236,11 +307,11 @@
       position: relative;
     }
 
-    .item:hover { background: #f6fbff; }
+    .item:hover { background: var(--hover-bg); }
 
     .item.active {
-      background: #e3f2fb;
-      border-left: 4px solid #0b6e99;
+      background: var(--active-bg);
+      border-left: 4px solid var(--brand);
       padding-left: 10px;
     }
 
@@ -249,7 +320,7 @@
       width: 8px;
       height: 8px;
       border-radius: 999px;
-      background: #0b6e99;
+      background: var(--brand);
       position: absolute;
       right: 12px;
       top: 14px;
@@ -281,9 +352,9 @@
     }
 
     .unread-pill {
-      border: 1px solid #8bbfd6;
-      background: #eef8fd;
-      color: #0b6e99;
+      border: 1px solid var(--unread-pill-border);
+      background: var(--unread-pill-bg);
+      color: var(--unread-pill-text);
       border-radius: 999px;
       padding: 2px 7px;
       font-size: 0.68rem;
@@ -294,9 +365,9 @@
     }
 
     .delete-btn {
-      border: 1px solid #e3e8ee;
-      background: #fff;
-      color: #748392;
+      border: 1px solid var(--del-border);
+      background: var(--del-bg);
+      color: var(--del-text);
       border-radius: 999px;
       width: 22px;
       height: 22px;
@@ -310,9 +381,9 @@
     }
 
     .delete-btn:hover {
-      border-color: #f0b7b2;
-      background: #fff4f3;
-      color: #b42318;
+      border-color: var(--del-hover-border);
+      background: var(--del-hover-bg);
+      color: var(--del-hover-text);
     }
 
     .item.unread .subject {
@@ -321,7 +392,7 @@
 
     .item.unread .meta {
       font-weight: 600;
-      color: #3f5263;
+      color: var(--unread-meta);
     }
 
     .item:not(.unread) .subject {
@@ -360,7 +431,7 @@
     }
 
     .headers strong {
-      color: #111827;
+      color: var(--section-text);
       display: inline-block;
       width: 75px;
     }
@@ -368,8 +439,9 @@
     .body {
       padding: 14px;
       overflow: auto;
-      background: #fbfcfd;
+      background: var(--item-bg);
       min-height: 220px;
+      transition: background 0.3s ease;
     }
 
     pre {
@@ -425,6 +497,7 @@
         <p class="subtitle">Catch and inspect outgoing emails</p>
       </div>
       <div class="actions">
+        <button id="themeToggleBtn">🌙 Dark</button>
         <button id="refreshBtn">Refresh</button>
         <button id="clearBtn" class="danger">Clear</button>
       </div>
@@ -447,7 +520,10 @@
     <div class="config-strip">
       <div class="section-head">
         <span>Configurations</span>
-        <button id="copyConfigBtn" class="ghost-btn">Copy YAML</button>
+        <div style="display: flex; gap: 8px;">
+          <button id="copyThunderBtn" class="ghost-btn">Copy Thunder YAML</button>
+          <button id="copyConfigBtn" class="ghost-btn">Copy YAML</button>
+        </div>
       </div>
       <div class="config-panel">
         <div class="config-list" id="configGrid">
@@ -458,6 +534,34 @@
   </div>
 
   <script>
+    // --- Dark Mode Logic ---
+    const themeToggleBtn = document.getElementById("themeToggleBtn");
+    const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+
+    // Initialize Theme
+    const currentTheme = localStorage.getItem("theme");
+    if (currentTheme === "dark" || (!currentTheme && prefersDarkScheme.matches)) {
+      document.documentElement.setAttribute("data-theme", "dark");
+      themeToggleBtn.textContent = "☀️ Light";
+    } else {
+      themeToggleBtn.textContent = "🌙 Dark";
+    }
+
+    // Toggle Action
+    themeToggleBtn.addEventListener("click", () => {
+      let theme = "light";
+      if (document.documentElement.getAttribute("data-theme") !== "dark") {
+        document.documentElement.setAttribute("data-theme", "dark");
+        theme = "dark";
+        themeToggleBtn.textContent = "☀️ Light";
+      } else {
+        document.documentElement.removeAttribute("data-theme");
+        themeToggleBtn.textContent = "🌙 Dark";
+      }
+      localStorage.setItem("theme", theme);
+    });
+    // -----------------------
+
     const emailListEl = document.getElementById("emailList");
     const headersEl = document.getElementById("headers");
     const bodyEl = document.getElementById("body");
@@ -465,6 +569,7 @@
     const clearBtn = document.getElementById("clearBtn");
     const configGridEl = document.getElementById("configGrid");
     const copyConfigBtn = document.getElementById("copyConfigBtn");
+    const copyThunderBtn = document.getElementById("copyThunderBtn");
 
     let emails = [];
     let selectedId = null;
@@ -491,6 +596,23 @@
         `max_messages: ${config.max_messages}`,
         `refresh_ms: ${config.refresh_ms}`,
       ].join("\n");
+    }
+
+    function buildThunderYaml() {
+      if (!config) {
+        return "";
+      }
+      const hasAuth = Boolean(config.smtp_username || config.smtp_password || config.smtp_auth_methods);
+      const isTls = Boolean(config.smtp_tls);
+      return `email:
+  smtp:
+    host: "${config.smtp_host || ''}"
+    port: ${config.smtp_port || ''}
+    username: "${config.smtp_username || ''}"
+    password: "${config.smtp_password || ''}"
+    from_address: "noreply@thunder.sky"
+    enable_start_tls: ${isTls}
+    enable_authentication: ${hasAuth}`;
     }
 
     async function copyTextWithFeedback(text, button, idleText, successText) {
@@ -702,8 +824,13 @@
 
     refreshBtn.addEventListener("click", loadEmails);
     clearBtn.addEventListener("click", clearEmails);
+    
     copyConfigBtn.addEventListener("click", async () => {
       await copyTextWithFeedback(buildRuntimeYaml(), copyConfigBtn, "Copy YAML", "Copied");
+    });
+    
+    copyThunderBtn.addEventListener("click", async () => {
+      await copyTextWithFeedback(buildThunderYaml(), copyThunderBtn, "Copy Thunder YAML", "Copied");
     });
 
     async function init() {
