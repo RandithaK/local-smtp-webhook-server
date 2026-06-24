@@ -419,7 +419,7 @@
 
     .pane {
       display: grid;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto auto 1fr;
       min-height: 0;
     }
 
@@ -436,12 +436,61 @@
       width: 75px;
     }
 
+    .view-selector {
+      display: flex;
+      padding: 6px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--section-bg);
+      gap: 8px;
+      align-items: center;
+      transition: background 0.3s ease;
+    }
+
+    .selector-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.2s ease;
+    }
+
+    .selector-btn:hover {
+      color: var(--ink);
+      background: var(--hover-bg);
+    }
+
+    .selector-btn.active {
+      background: var(--btn-bg);
+      border-color: var(--border);
+      color: var(--brand);
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
     .body {
       padding: 14px;
       overflow: auto;
       background: var(--item-bg);
       min-height: 220px;
       transition: background 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .body.iframe-active {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .body-iframe {
+      width: 100%;
+      height: 100%;
+      flex: 1;
+      border: none;
+      background: #ffffff;
     }
 
     pre {
@@ -513,6 +562,7 @@
 
       <div class="card pane">
         <div class="headers" id="headers"></div>
+        <div class="view-selector" id="viewSelector" style="display: none;"></div>
         <div class="body" id="body"></div>
       </div>
     </div>
@@ -576,6 +626,7 @@
     let config = null;
     let pollInterval = 3000;
     let pollTimer = null;
+    let currentView = "default";
 
     function buildRuntimeYaml() {
       if (!config) {
@@ -693,6 +744,36 @@
       });
     }
 
+    function getNestedHtml(email) {
+      if (!email) return null;
+      const raw = email.raw || "";
+      let bodyText = raw;
+      if (email.type === "webhook") {
+        const parts = raw.split("\r\n\r\n");
+        bodyText = parts.length > 1 ? parts.slice(1).join("\r\n\r\n") : raw;
+      }
+      bodyText = bodyText.trim();
+      if (bodyText.toLowerCase().startsWith("<!doctype html>") || bodyText.toLowerCase().startsWith("<html")) {
+        return bodyText;
+      }
+      if (email.type === "webhook") {
+        try {
+          const parsed = JSON.parse(bodyText);
+          if (parsed && typeof parsed === "object") {
+            const bodyVal = parsed.body || parsed.html || parsed.message || "";
+            if (typeof bodyVal === "string" && (bodyVal.toLowerCase().includes("<!doctype html>") || bodyVal.toLowerCase().includes("<html"))) {
+              return bodyVal;
+            }
+          }
+        } catch (_) {}
+      } else {
+        if (email.html_body) {
+          return email.html_body;
+        }
+      }
+      return null;
+    }
+
     async function openEmail(id) {
       selectedId = id;
       const email = emails.find((it) => it.id === id);
@@ -700,15 +781,18 @@
         email.is_read = true;
         fetch(`/api/emails/${id}/read`, { method: "PATCH" }).catch(() => {});
       }
+      currentView = "default";
       renderList();
       renderSelected();
     }
 
     function renderSelected() {
       const email = emails.find((it) => it.id === selectedId);
+      const selector = document.getElementById("viewSelector");
       if (!email) {
         headersEl.innerHTML = '<div class="empty">Select a message</div>';
         bodyEl.innerHTML = '<div class="empty">Message body will appear here</div>';
+        if (selector) selector.style.display = "none";
         return;
       }
 
@@ -728,11 +812,78 @@
         `;
       }
 
-      if (email.html_body) {
-        bodyEl.innerHTML = email.html_body;
-        decorateEmailHtml();
+      const nestedHtml = getNestedHtml(email);
+      const tabs = [];
+
+      if (email.type === "webhook") {
+        tabs.push({ id: "default", label: "Formatted Webhook" });
+        tabs.push({ id: "raw", label: "Raw Request" });
+        if (nestedHtml) {
+          tabs.push({ id: "preview", label: "Rendered HTML" });
+        }
       } else {
-        bodyEl.innerHTML = `<pre>${escapeHtml(email.text_body || email.raw || "")}</pre>`;
+        if (email.html_body) {
+          tabs.push({ id: "default", label: "Rendered Email" });
+          tabs.push({ id: "text", label: "Plain Text" });
+        } else {
+          tabs.push({ id: "default", label: "Plain Text" });
+        }
+        tabs.push({ id: "raw", label: "Raw MIME" });
+      }
+
+      if (!tabs.find(t => t.id === currentView)) {
+        currentView = tabs[0].id;
+      }
+
+      if (tabs.length > 1 && selector) {
+        selector.style.display = "flex";
+        selector.innerHTML = tabs.map(tab => {
+          const activeCls = tab.id === currentView ? "active" : "";
+          return `<button class="selector-btn ${activeCls}" data-view="${tab.id}">${escapeHtml(tab.label)}</button>`;
+        }).join("");
+
+        selector.querySelectorAll(".selector-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            currentView = btn.dataset.view;
+            renderSelected();
+          });
+        });
+      } else if (selector) {
+        selector.style.display = "none";
+      }
+
+      const bodyContainer = document.getElementById("body");
+      bodyContainer.className = "body";
+
+      if (currentView === "preview" || (currentView === "default" && email.type !== "webhook" && email.html_body)) {
+        const html = currentView === "preview" ? nestedHtml : email.html_body;
+        bodyContainer.classList.add("iframe-active");
+        
+        const iframe = document.createElement("iframe");
+        iframe.className = "body-iframe";
+        bodyContainer.innerHTML = "";
+        bodyContainer.appendChild(iframe);
+
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(html);
+        doc.close();
+
+        iframe.onload = () => {
+          const doc = iframe.contentDocument || iframe.contentWindow.document;
+          doc.querySelectorAll("a[href]").forEach((link) => {
+            link.setAttribute("target", "_blank");
+            link.setAttribute("rel", "noopener noreferrer");
+          });
+        };
+      } else if (currentView === "default" && email.type === "webhook") {
+        bodyContainer.innerHTML = email.html_body || "";
+        decorateEmailHtml();
+      } else if (currentView === "text") {
+        bodyContainer.innerHTML = `<pre>${escapeHtml(email.text_body || "")}</pre>`;
+      } else {
+        const rawContent = currentView === "raw" ? (email.raw || "") : (email.text_body || email.raw || "");
+        bodyContainer.innerHTML = `<pre>${escapeHtml(rawContent)}</pre>`;
       }
     }
 
