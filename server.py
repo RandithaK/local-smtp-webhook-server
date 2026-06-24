@@ -121,6 +121,7 @@ class CapturedEmail:
     text_body: str
     html_body: str
     raw: str
+    type: str = "email"
     is_read: bool = False
 
 
@@ -326,6 +327,10 @@ class InboxHandler(BaseHTTPRequestHandler):
     config: Dict[str, Any]
 
     def do_GET(self) -> None:
+        if self.path.startswith("/api/webhooks"):
+            self._handle_webhook()
+            return
+
         if self.path == "/":
             self._serve_ui()
             return
@@ -357,7 +362,23 @@ class InboxHandler(BaseHTTPRequestHandler):
 
         self.send_error(HTTPStatus.NOT_FOUND, "Not found")
 
+    def do_POST(self) -> None:
+        if self.path.startswith("/api/webhooks"):
+            self._handle_webhook()
+            return
+        self.send_error(HTTPStatus.NOT_FOUND, "Not found")
+
+    def do_PUT(self) -> None:
+        if self.path.startswith("/api/webhooks"):
+            self._handle_webhook()
+            return
+        self.send_error(HTTPStatus.NOT_FOUND, "Not found")
+
     def do_DELETE(self) -> None:
+        if self.path.startswith("/api/webhooks"):
+            self._handle_webhook()
+            return
+
         if self.path == "/api/emails":
             self.store.clear()
             self._send_json({"status": "ok"})
@@ -381,6 +402,10 @@ class InboxHandler(BaseHTTPRequestHandler):
         self.send_error(HTTPStatus.NOT_FOUND, "Not found")
 
     def do_PATCH(self) -> None:
+        if self.path.startswith("/api/webhooks"):
+            self._handle_webhook()
+            return
+
         if not self.path.startswith("/api/emails/") or not self.path.endswith("/read"):
             self.send_error(HTTPStatus.NOT_FOUND, "Not found")
             return
@@ -399,6 +424,100 @@ class InboxHandler(BaseHTTPRequestHandler):
 
         self._send_json({"status": "ok"})
         return
+
+    def _handle_webhook(self) -> None:
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length).decode("utf-8", errors="replace") if content_length > 0 else ""
+
+        headers_dict = {k: v for k, v in self.headers.items()}
+        raw_headers = "\r\n".join(f"{k}: {v}" for k, v in headers_dict.items())
+        raw_request = f"{self.command} {self.path} HTTP/1.1\r\n{raw_headers}\r\n\r\n{body}"
+
+        html_body = self._format_webhook_html(self.command, self.path, headers_dict, body)
+
+        captured = CapturedEmail(
+            id=self.store.next_id(),
+            received_at=datetime.now(timezone.utc).isoformat(),
+            peer=str(self.client_address),
+            mail_from=f"{self.command} {self.path}",
+            rcpt_to=[],
+            header_from=self.headers.get("User-Agent", "Unknown"),
+            header_to=self.headers.get("Host", "Unknown"),
+            subject=f"[Webhook] {self.command} {self.path}",
+            text_body=raw_request,
+            html_body=html_body,
+            raw=raw_request,
+            type="webhook"
+        )
+        self.store.add(captured)
+
+        self._send_json({"status": "captured", "id": captured.id}, status=HTTPStatus.ACCEPTED)
+
+    def _format_webhook_html(self, method: str, path: str, headers: Dict[str, str], body: str) -> str:
+        method_upper = method.upper()
+        if method_upper == "GET":
+            badge_color = "#0ea5e9"
+        elif method_upper == "POST":
+            badge_color = "#10b981"
+        elif method_upper == "PUT":
+            badge_color = "#f59e0b"
+        elif method_upper in ("DELETE", "PATCH"):
+            badge_color = "#ef4444"
+        else:
+            badge_color = "#6b7280"
+
+        header_rows = ""
+        for k, v in sorted(headers.items()):
+            header_rows += f"""
+            <tr>
+                <td style="padding: 6px 12px; border-bottom: 1px solid var(--border); font-family: monospace; font-size: 0.85rem; color: var(--muted); font-weight: 500;">{self._escape_html(k)}</td>
+                <td style="padding: 6px 12px; border-bottom: 1px solid var(--border); font-family: monospace; font-size: 0.85rem; color: var(--ink); word-break: break-all;">{self._escape_html(v)}</td>
+            </tr>
+            """
+
+        formatted_body = ""
+        if body:
+            try:
+                parsed_json = json.loads(body)
+                pretty_json = json.dumps(parsed_json, indent=2)
+                formatted_body = f"<pre style='margin: 0; background: var(--section-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border); overflow-x: auto; color: var(--ink);'>{self._escape_html(pretty_json)}</pre>"
+            except Exception:
+                formatted_body = f"<pre style='margin: 0; background: var(--section-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border); overflow-x: auto; color: var(--ink); white-space: pre-wrap; word-break: break-all;'>{self._escape_html(body)}</pre>"
+        else:
+            formatted_body = "<em style='color: var(--muted); font-size: 0.9rem;'>No request body</em>"
+
+        html = f"""
+        <div style="font-family: inherit; color: var(--ink); padding: 4px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <span style="background: {badge_color}; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.9rem; text-transform: uppercase;">{method}</span>
+                <span style="font-family: monospace; font-size: 1.1rem; font-weight: 600; color: var(--ink); word-break: break-all;">{self._escape_html(path)}</span>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);">Headers</h4>
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--panel);">
+                    <thead>
+                        <tr style="background: var(--section-bg);">
+                            <th style="text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 0.8rem; font-weight: 600; color: var(--section-text); width: 200px;">Key</th>
+                            <th style="text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 0.8rem; font-weight: 600; color: var(--section-text);">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {header_rows}
+                    </tbody>
+                </table>
+            </div>
+
+            <div>
+                <h4 style="margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);">Payload</h4>
+                {formatted_body}
+            </div>
+        </div>
+        """
+        return html
+
+    def _escape_html(self, text: str) -> str:
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;").replace("'", "&#39;")
 
     def log_message(self, format: str, *args: Any) -> None:
         return
@@ -573,6 +692,7 @@ def build_config(args: argparse.Namespace) -> Dict[str, Any]:
 
     config["smtp_endpoint"] = f"{config['smtp_host']}:{config['smtp_port']}"
     config["ui_url"] = f"http://{config['http_host']}:{config['http_port']}"
+    config["webhook_url"] = f"http://{config['http_host']}:{config['http_port']}/api/webhooks"
 
     return config
 
@@ -590,6 +710,7 @@ def main() -> None:
     httpd = run_http_server(str(config["http_host"]), int(config["http_port"]), store, ui_path, config)
 
     print(f"SMTP listening on {config['smtp_endpoint']}")
+    print(f"Webhook URL: {config['webhook_url']}")
     print(f"Inbox UI: {config['ui_url']}")
 
     try:

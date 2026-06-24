@@ -493,8 +493,8 @@
   <div class="shell">
     <div class="top">
       <div>
-        <h1 class="title">Local SMTP Inbox</h1>
-        <p class="subtitle">Catch and inspect outgoing emails</p>
+        <h1 class="title">Local SMTP &amp; Webhook Catcher</h1>
+        <p class="subtitle">Catch and inspect outgoing emails and webhook requests</p>
       </div>
       <div class="actions">
         <button id="themeToggleBtn">🌙 Dark</button>
@@ -506,7 +506,7 @@
     <div class="layout">
       <div class="left-column">
         <div class="card list-card">
-          <div class="section-head">Email List</div>
+          <div class="section-head">Message List</div>
           <div class="list" id="emailList"></div>
         </div>
       </div>
@@ -646,7 +646,7 @@
 
     function renderList() {
       if (!emails.length) {
-        emailListEl.innerHTML = '<div class="empty">No emails yet</div>';
+        emailListEl.innerHTML = '<div class="empty">No messages yet</div>';
         return;
       }
 
@@ -657,13 +657,17 @@
           .join(" ");
         const subject = email.subject || "(no subject)";
         const unreadBadge = isUnread ? '<span class="unread-pill">Unread</span>' : "";
+        const typeBadge = email.type === "webhook"
+          ? '<span style="border: 1px solid #10b981; background: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 999px; padding: 2px 7px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;">Webhook</span>'
+          : '<span style="border: 1px solid var(--border); background: var(--section-bg); color: var(--muted); border-radius: 999px; padding: 2px 7px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;">Email</span>';
         return `
           <div class="${cls}" data-id="${email.id}">
             <div class="subject-line">
               <p class="subject">${escapeHtml(subject)}</p>
               <div class="subject-actions">
+                ${typeBadge}
                 ${unreadBadge}
-                <button class="delete-btn" data-delete-id="${email.id}" title="Delete email" aria-label="Delete email">&times;</button>
+                <button class="delete-btn" data-delete-id="${email.id}" title="Delete message" aria-label="Delete message">&times;</button>
               </div>
             </div>
             <div class="meta">From: ${escapeHtml(email.header_from || email.mail_from || "-")}</div>
@@ -703,17 +707,26 @@
     function renderSelected() {
       const email = emails.find((it) => it.id === selectedId);
       if (!email) {
-        headersEl.innerHTML = '<div class="empty">Select an email</div>';
-        bodyEl.innerHTML = '<div class="empty">Email body will appear here</div>';
+        headersEl.innerHTML = '<div class="empty">Select a message</div>';
+        bodyEl.innerHTML = '<div class="empty">Message body will appear here</div>';
         return;
       }
 
-      headersEl.innerHTML = `
-        <div><strong>Subject</strong>${escapeHtml(email.subject || "(no subject)")}</div>
-        <div><strong>From</strong>${escapeHtml(email.header_from || email.mail_from || "-")}</div>
-        <div><strong>To</strong>${escapeHtml(email.header_to || email.rcpt_to.join(", ") || "-")}</div>
-        <div><strong>At</strong>${escapeHtml(fmtDate(email.received_at))}</div>
-      `;
+      if (email.type === "webhook") {
+        headersEl.innerHTML = `
+          <div><strong>Webhook</strong>${escapeHtml(email.subject || "(no subject)")}</div>
+          <div><strong>Client</strong>${escapeHtml(email.peer || "-")}</div>
+          <div><strong>Agent</strong>${escapeHtml(email.header_from || "-")}</div>
+          <div><strong>At</strong>${escapeHtml(fmtDate(email.received_at))}</div>
+        `;
+      } else {
+        headersEl.innerHTML = `
+          <div><strong>Subject</strong>${escapeHtml(email.subject || "(no subject)")}</div>
+          <div><strong>From</strong>${escapeHtml(email.header_from || email.mail_from || "-")}</div>
+          <div><strong>To</strong>${escapeHtml(email.header_to || email.rcpt_to.join(", ") || "-")}</div>
+          <div><strong>At</strong>${escapeHtml(fmtDate(email.received_at))}</div>
+        `;
+      }
 
       if (email.html_body) {
         bodyEl.innerHTML = email.html_body;
@@ -754,6 +767,7 @@
         renderConfigItem("Password", config.smtp_password, { secret: true }),
         renderConfigItem("Auth", authMethods),
         renderConfigItem("TLS", config.smtp_tls ? "Enabled" : "Disabled"),
+        renderConfigItem("Webhook URL", config.webhook_url),
       ].join("");
 
       configGridEl.querySelectorAll(".copy-btn").forEach((btn) => {
