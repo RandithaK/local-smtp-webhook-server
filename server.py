@@ -123,6 +123,10 @@ class CapturedEmail:
     raw: str
     type: str = "email"
     is_read: bool = False
+    header_cc: str = ""
+    header_bcc: str = ""
+
+
 
 
 class EmailStore:
@@ -305,6 +309,13 @@ class SMTPConnection:
         parsed = BytesParser(policy=policy.default).parsebytes(raw_message.encode("utf-8", errors="replace"))
         text_body, html_body = extract_bodies(parsed)
 
+        from email.utils import getaddresses
+        envelope_emails = {addr.strip("<>").strip().lower() for addr in self.rcpt_to}
+        header_to_emails = {addr.lower() for name, addr in getaddresses([str(parsed.get("To", ""))]) if addr}
+        header_cc_emails = {addr.lower() for name, addr in getaddresses([str(parsed.get("Cc", ""))]) if addr}
+        bcc_emails = sorted(list(envelope_emails - header_to_emails - header_cc_emails))
+        header_bcc = ", ".join(bcc_emails)
+
         captured = CapturedEmail(
             id=self.store.next_id(),
             received_at=datetime.now(timezone.utc).isoformat(),
@@ -313,10 +324,12 @@ class SMTPConnection:
             rcpt_to=list(self.rcpt_to),
             header_from=str(parsed.get("From", "")),
             header_to=str(parsed.get("To", "")),
-            subject=str(parsed.get("Subject", "")),
+            subject=f"[SMTP] {str(parsed.get('Subject', ''))}",
             text_body=text_body,
             html_body=html_body,
             raw=raw_message,
+            header_cc=str(parsed.get("Cc", "")),
+            header_bcc=header_bcc,
         )
         self.store.add(captured)
 
@@ -443,7 +456,7 @@ class InboxHandler(BaseHTTPRequestHandler):
             rcpt_to=[],
             header_from=self.headers.get("User-Agent", "Unknown"),
             header_to=self.headers.get("Host", "Unknown"),
-            subject=f"[Webhook] {self.command} {self.path}",
+            subject=f"{self.command} {self.path}",
             text_body=raw_request,
             html_body=html_body,
             raw=raw_request,

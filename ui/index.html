@@ -711,7 +711,7 @@
         const unreadBadge = isUnread ? '<span class="unread-pill">Unread</span>' : "";
         const typeBadge = email.type === "webhook"
           ? '<span style="border: 1px solid #10b981; background: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 999px; padding: 2px 7px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;">Webhook</span>'
-          : '<span style="border: 1px solid var(--border); background: var(--section-bg); color: var(--muted); border-radius: 999px; padding: 2px 7px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;">Email</span>';
+          : '<span style="border: 1px solid var(--border); background: var(--section-bg); color: var(--muted); border-radius: 999px; padding: 2px 7px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;">SMTP</span>';
         return `
           <div class="${cls}" data-id="${email.id}">
             <div class="subject-line">
@@ -805,10 +805,14 @@
           <div><strong>At</strong>${escapeHtml(fmtDate(email.received_at))}</div>
         `;
       } else {
+        const ccHtml = email.header_cc ? `<div><strong>Cc</strong>${escapeHtml(email.header_cc)}</div>` : "";
+        const bccHtml = email.header_bcc ? `<div><strong>Bcc</strong><span class="reveal-bcc" onclick="this.textContent = this.dataset.bcc; this.style.color = 'inherit'; this.style.background = 'transparent'; this.style.cursor = 'text';" data-bcc="${escapeHtml(email.header_bcc)}" style="cursor: pointer; background: var(--border); color: transparent; border-radius: 4px; padding: 1px 6px; font-size: 0.85rem; user-select: none;" title="Click to reveal BCC">••••••••</span></div>` : "";
         headersEl.innerHTML = `
           <div><strong>Subject</strong>${escapeHtml(email.subject || "(no subject)")}</div>
           <div><strong>From</strong>${escapeHtml(email.header_from || email.mail_from || "-")}</div>
           <div><strong>To</strong>${escapeHtml(email.header_to || email.rcpt_to.join(", ") || "-")}</div>
+          ${ccHtml}
+          ${bccHtml}
           <div><strong>At</strong>${escapeHtml(fmtDate(email.received_at))}</div>
         `;
       }
