@@ -207,24 +207,24 @@
     }
 
     .config-list {
-      display: flex;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      overflow-y: hidden;
-      gap: 8px;
-      padding-bottom: 4px;
-      scrollbar-width: thin;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      width: 100%;
     }
 
     .config-item {
       border: 1px solid var(--border);
       border-radius: 8px;
       background: var(--item-bg);
-      padding: 7px;
+      padding: 10px;
       min-width: 0;
-      width: 280px;
-      flex: 0 0 auto;
+      width: 100%;
       transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .config-strip.collapsed .config-panel {
+      display: none;
     }
 
     .config-item label {
@@ -532,9 +532,7 @@
         max-height: none;
       }
 
-      .config-item {
-        width: 240px;
-      }
+      /* config-item responsive layout handled by CSS grid */
     }
   </style>
 </head>
@@ -568,9 +566,12 @@
     </div>
 
     <div class="config-strip">
-      <div class="section-head">
-        <span>Configurations</span>
-        <div style="display: flex; gap: 8px;">
+      <div class="section-head" id="configHeader" style="cursor: pointer;">
+        <div style="display: flex; align-items: center; gap: 8px; user-select: none;">
+          <span id="configToggleChevron" style="display: inline-block; transition: transform 0.2s ease;">▼</span>
+          <span>Configurations</span>
+        </div>
+        <div style="display: flex; gap: 8px;" onclick="event.stopPropagation();">
           <button id="copyThunderBtn" class="ghost-btn">Copy Thunder YAML</button>
           <button id="copyConfigBtn" class="ghost-btn">Copy YAML</button>
         </div>
@@ -996,6 +997,23 @@
     
     copyThunderBtn.addEventListener("click", async () => {
       await copyTextWithFeedback(buildThunderYaml(), copyThunderBtn, "Copy Thunder YAML", "Copied");
+    });
+
+    // --- Collapsible Config Panel ---
+    const configHeader = document.getElementById("configHeader");
+    const configStrip = document.querySelector(".config-strip");
+    const configToggleChevron = document.getElementById("configToggleChevron");
+
+    const configCollapsed = localStorage.getItem("config_collapsed") === "true";
+    if (configCollapsed) {
+      configStrip.classList.add("collapsed");
+      configToggleChevron.style.transform = "rotate(-90deg)";
+    }
+
+    configHeader.addEventListener("click", () => {
+      const isCollapsed = configStrip.classList.toggle("collapsed");
+      configToggleChevron.style.transform = isCollapsed ? "rotate(-90deg)" : "rotate(0deg)";
+      localStorage.setItem("config_collapsed", isCollapsed);
     });
 
     async function init() {
