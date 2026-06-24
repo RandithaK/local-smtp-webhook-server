@@ -710,8 +710,8 @@
         const subject = email.subject || "(no subject)";
         const unreadBadge = isUnread ? '<span class="unread-pill">Unread</span>' : "";
         const typeBadge = email.type === "webhook"
-          ? '<span style="border: 1px solid #10b981; background: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 999px; padding: 2px 7px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;">Webhook</span>'
-          : '<span style="border: 1px solid var(--border); background: var(--section-bg); color: var(--muted); border-radius: 999px; padding: 2px 7px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;">SMTP</span>';
+          ? '<span style="border: 1px solid #10b981; background: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 999px; padding: 2px 7px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;">HTTP</span>'
+          : '<span style="border: 1px solid #0ea5e9; background: rgba(14, 165, 233, 0.1); color: #0ea5e9; border-radius: 999px; padding: 2px 7px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0;">SMTP</span>';
         return `
           <div class="${cls}" data-id="${email.id}">
             <div class="subject-line">
@@ -799,7 +799,7 @@
 
       if (email.type === "webhook") {
         headersEl.innerHTML = `
-          <div><strong>Webhook</strong>${escapeHtml(email.subject || "(no subject)")}</div>
+          <div><strong>HTTP</strong>${escapeHtml(email.subject || "(no subject)")}</div>
           <div><strong>Client</strong>${escapeHtml(email.peer || "-")}</div>
           <div><strong>Agent</strong>${escapeHtml(email.header_from || "-")}</div>
           <div><strong>At</strong>${escapeHtml(fmtDate(email.received_at))}</div>

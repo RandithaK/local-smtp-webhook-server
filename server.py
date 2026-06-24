@@ -324,7 +324,7 @@ class SMTPConnection:
             rcpt_to=list(self.rcpt_to),
             header_from=str(parsed.get("From", "")),
             header_to=str(parsed.get("To", "")),
-            subject=f"[SMTP] {str(parsed.get('Subject', ''))}",
+            subject=str(parsed.get('Subject', '')),
             text_body=text_body,
             html_body=html_body,
             raw=raw_message,
