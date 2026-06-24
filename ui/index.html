@@ -206,6 +206,22 @@
       border-color: var(--brand);
     }
 
+    .dull-btn {
+      border: 1px dashed var(--border);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 6px 9px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      opacity: 0.7;
+    }
+
+    .dull-btn:hover {
+      opacity: 1;
+      color: var(--ink);
+    }
+
     .config-list {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -572,8 +588,10 @@
           <span>Configurations</span>
         </div>
         <div style="display: flex; gap: 8px;" onclick="event.stopPropagation();">
-          <button id="copyThunderBtn" class="ghost-btn">Copy Thunder YAML</button>
-          <button id="copyConfigBtn" class="ghost-btn">Copy YAML</button>
+          <button id="copyEmailSmtpBtn" class="ghost-btn">Copy, Email SMTP</button>
+          <button id="copyWebhookBtn" class="ghost-btn">Copy, Webhook</button>
+          <button id="copyThunderBtn" class="dull-btn" title="Deprecated: Use new declarative formats">Copy Thunder YAML</button>
+          <button id="copyConfigBtn" class="dull-btn" title="Deprecated: Use new declarative formats">Copy YAML</button>
         </div>
       </div>
       <div class="config-panel">
@@ -621,6 +639,8 @@
     const configGridEl = document.getElementById("configGrid");
     const copyConfigBtn = document.getElementById("copyConfigBtn");
     const copyThunderBtn = document.getElementById("copyThunderBtn");
+    const copyEmailSmtpBtn = document.getElementById("copyEmailSmtpBtn");
+    const copyWebhookBtn = document.getElementById("copyWebhookBtn");
 
     let emails = [];
     let selectedId = null;
@@ -665,6 +685,48 @@
     from_address: "noreply@thunder.sky"
     enable_start_tls: ${isTls}
     enable_authentication: ${hasAuth}`;
+    }
+
+    function buildEmailSmtpYaml() {
+      if (!config) {
+        return "";
+      }
+      const hasAuth = Boolean(config.smtp_username || config.smtp_password || config.smtp_auth_methods);
+      const isTls = Boolean(config.smtp_tls);
+      return `id: "local_smtp"
+name: "Local SMTP"
+provider: "smtp"
+properties:
+  - name: "host"
+    value: "${config.smtp_host || ''}"
+  - name: "port"
+    value: "${config.smtp_port || ''}"
+  - name: "username"
+    value: "${config.smtp_username || ''}"
+  - name: "password"
+    value: "${config.smtp_password || ''}"
+  - name: "from_address"
+    value: "noreply@thunder.sky"
+  - name: "enable_start_tls"
+    value: "${isTls}"
+  - name: "enable_authentication"
+    value: "${hasAuth}"`;
+    }
+
+    function buildWebhookYaml() {
+      if (!config) {
+        return "";
+      }
+      return `id: "local_webhook"
+name: "Local Webhook"
+provider: "http"
+properties:
+  - name: "url"
+    value: "${config.webhook_url || ''}"
+  - name: "http_method"
+    value: "POST"
+  - name: "content_type"
+    value: "JSON"`;
     }
 
     async function copyTextWithFeedback(text, button, idleText, successText) {
@@ -1001,6 +1063,14 @@
     
     copyThunderBtn.addEventListener("click", async () => {
       await copyTextWithFeedback(buildThunderYaml(), copyThunderBtn, "Copy Thunder YAML", "Copied");
+    });
+
+    copyEmailSmtpBtn.addEventListener("click", async () => {
+      await copyTextWithFeedback(buildEmailSmtpYaml(), copyEmailSmtpBtn, "Copy, Email SMTP", "Copied");
+    });
+
+    copyWebhookBtn.addEventListener("click", async () => {
+      await copyTextWithFeedback(buildWebhookYaml(), copyWebhookBtn, "Copy, Webhook", "Copied");
     });
 
     // --- Collapsible Config Panel ---
